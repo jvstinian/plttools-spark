@@ -1,5 +1,5 @@
 organization := "com.jvstinian"
-name := "rms-plt-analytics"
+name := "plttools-spark"
 version := "0.1.0"
 scalaVersion := "2.11.12" // Scala version needs to match version of Scaala used by Spark
 
