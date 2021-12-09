@@ -1,0 +1,15 @@
+PLTTools for Spark
+Copyright 2021 Justin Smith, jvstinian.com
+
+===============================================================================
+This work includes sample files from the plttools repo at 
+https://github.com/RMS-Consulting/plttools.
+In particular, the file tests/sample_plt/plt.csv from the plttools repo 
+is included unmodified in this repo as the file 
+src/main/resources/plt.csv
+
+The plttools repo includes the following license: 
+
+MIT License
+Copyright (c) 2019 Anish Patel
+===============================================================================
