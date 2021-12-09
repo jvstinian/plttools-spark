@@ -10,7 +10,7 @@ import org.apache.spark.sql.functions.col
 import org.scalatest.Outcome
 import org.scalatest.flatspec.FixtureAnyFlatSpec
 
-class ELTRollup extends FixtureAnyFlatSpec {
+class ELTRollupSpec extends FixtureAnyFlatSpec {
 
   case class FixtureParam(spark: SparkSession, data: DataFrame)
 

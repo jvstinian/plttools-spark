@@ -16,7 +16,7 @@ import org.scalatest.flatspec.FixtureAnyFlatSpec
 
 import scala.io.Source
 
-class SamplePLTCalculator extends FixtureAnyFlatSpec {
+class SamplePLTCalculatorSpec extends FixtureAnyFlatSpec {
 
   case class FixtureParam(spark: SparkSession, data: DataFrame)
 

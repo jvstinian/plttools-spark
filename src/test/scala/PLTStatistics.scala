@@ -10,7 +10,7 @@ import org.apache.spark.sql.functions.lit
 import org.scalatest.Outcome
 import org.scalatest.flatspec.FixtureAnyFlatSpec
 
-class PLTStatistics extends FixtureAnyFlatSpec {
+class PLTStatisticsSpec extends FixtureAnyFlatSpec {
 
   case class FixtureParam(spark: SparkSession, data: DataFrame)
 

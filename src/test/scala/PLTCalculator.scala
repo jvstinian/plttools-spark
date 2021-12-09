@@ -12,7 +12,7 @@ import org.apache.spark.sql.functions.lit
 import org.scalatest.Outcome
 import org.scalatest.flatspec.FixtureAnyFlatSpec
 
-class PLTCalculator extends FixtureAnyFlatSpec {
+class PLTCalculatorSpec extends FixtureAnyFlatSpec {
 
   case class FixtureParam(spark: SparkSession, data: DataFrame)
 

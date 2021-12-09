@@ -9,7 +9,7 @@ import org.apache.spark.sql.SparkSession
 import org.scalatest.Outcome
 import org.scalatest.flatspec.FixtureAnyFlatSpec
 
-class ELTStatistics extends FixtureAnyFlatSpec {
+class ELTStatisticsSpec extends FixtureAnyFlatSpec {
 
   case class FixtureParam(spark: SparkSession, data: DataFrame)
 
