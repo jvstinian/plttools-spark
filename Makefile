@@ -18,6 +18,9 @@ lint:
 
 setup:
 
+package:
+	@sbt package
+
 test: clean build lint
 	@make unit
 
