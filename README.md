@@ -41,4 +41,5 @@ For anyone interested in using this as a spark library
 in order to 
 calculate statistics for ELTs or PLTs or to 
 calculate EP curves for PLTs, 
+the main method in class `RMSPLTAnalyticsExample` and 
 the test cases might prove instructive.
