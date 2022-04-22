@@ -26,7 +26,8 @@ object PLTRecordParser {
         PLTRecord(
           lossType,
           periodIdStr.toInt,
-          weightStr.toDouble, eventIdStr.toLong,
+          weightStr.toDouble,
+          eventIdStr.toLong,
           new Date(format.parse(eventDateStr).getTime()),
           new Date(format.parse(lossDateStr).getTime()),
           lossStr.toDouble
@@ -57,10 +58,12 @@ object RMSPLTAnalyticsExample {
     val rps = EPCurve.RETURN_PERIODS.toSeq.map(_.toDouble)
     val zeroLossRecordWeight = 1.0 / 50000.0
     val pmlsdf = PLT.calculateCombinedPMLForReturnPeriodsBySubportfolio(
-      df, rps, Some(zeroLossRecordWeight)
+      df,
+      rps,
+      Some(zeroLossRecordWeight)
     )
     pmlsdf.orderBy(col("SubportfolioId"), col("ReturnPeriod").desc).show(false)
-    
+
     spark.stop()
   }
 }
