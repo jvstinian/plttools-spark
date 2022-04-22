@@ -26,8 +26,8 @@ case class SimplePLTRecord(
 
 // PLTRecord is used for construction a Spark DataFrame.
 // Though this runs contrary to naming conventions,
-// we use uppercase constructor parameters for consistency 
-// with the input field names (and to avoid manual renaming 
+// we use uppercase constructor parameters for consistency
+// with the input field names (and to avoid manual renaming
 // of fields).
 case class PLTRecord(
     LossType: String,
@@ -114,7 +114,7 @@ object PLT {
       .flatMapGroups(calculateEPForReturnPeriods(EPCurve.EPType.AEP, rps, zeroLossRecordWeight))
       .toDF()
   }
-  
+
   def calculateCombinedPMLForReturnPeriodsBySubportfolio(
       pltdf: DataFrame,
       rps: Seq[Double],
@@ -124,11 +124,12 @@ object PLT {
     val opmldf = this.calculateOEPForReturnPeriodsBySubportfolio(groupedPltDf, rps, zeroLossRecordWeight)
     val apmldf = this.calculateAEPForReturnPeriodsBySubportfolio(groupedPltDf, rps, zeroLossRecordWeight)
     val resdf = opmldf.union(apmldf)
-    resdf.groupBy("SubportfolioId", "ReturnPeriod")
-         .pivot("EPType", Seq[String]("OEP", "AEP"))
-         .agg(max(col("Loss")).alias("Loss"))
-         .withColumnRenamed("OEP", "OPML")
-         .withColumnRenamed("AEP", "APML")
+    resdf
+      .groupBy("SubportfolioId", "ReturnPeriod")
+      .pivot("EPType", Seq[String]("OEP", "AEP"))
+      .agg(max(col("Loss")).alias("Loss"))
+      .withColumnRenamed("OEP", "OPML")
+      .withColumnRenamed("AEP", "APML")
   }
 
   def groupPlts(pltdf: DataFrame): DataFrame = pltdf
