@@ -32,7 +32,7 @@ class SamplePLTCalculatorSpec extends FixtureAnyFlatSpec {
       .tail
       .map(PLTRecordParser.parseRecord)
     val df = PLTRecord.toDataframe(spark, pltrecs).withColumn("subportfolioId", lit("all"))
-    val groupeddf = PLT.groupPlts(df)
+    val groupeddf = PLT.groupPlts(df).cache
 
     val theFixture = FixtureParam(spark, df, groupeddf)
 
@@ -113,5 +113,30 @@ class SamplePLTCalculatorSpec extends FixtureAnyFlatSpec {
     assert(lossmap(   10.0) === (44769969.04 +- 1e-2))
     assert(lossmap(    5.0) === (15443202.180000002 +- 1e-2))
     assert(lossmap(    2.0) === (672148.1900000001 +- 1e-2))
+  }
+
+  "Test AAL" should "have value" in { fixture =>
+    val aal = PLT.calculateAAL(fixture.data).select("AAL").first().getDouble(0)
+    assert(aal === (21798489.1307784 +- 1e-6))
+  }
+
+  "Test Standard Deviation" should "have value" in { fixture =>
+    val sd = PLT.calculateStandardDeviation(fixture.data).select("StdDev").first().getDouble(0)
+    assert(sd === (91165041.19825359 +- 1e-6))
+  }
+  
+  "Test statistics" should "have columns" in { fixture =>
+    val stats = PLT.calculateStatistics(fixture.data)
+    assert(stats.columns.deep == Array[String]("SubportfolioId", "AAL", "StdDev", "CV").deep)
+  }
+
+  it should "have values" in { fixture =>
+    val stats = PLT.calculateStatistics(fixture.data).cache
+    val aal = stats.first().getDouble(1)
+    val sd = stats.first().getDouble(2)
+    val cv = stats.first().getDouble(3)
+    assert(aal === (21798489.1307784 +- 1e-6))
+    assert(sd === (91165041.19825359 +- 1e-6))
+    assert(cv === (4.182172473115717 +- 1e-6))
   }
 }
