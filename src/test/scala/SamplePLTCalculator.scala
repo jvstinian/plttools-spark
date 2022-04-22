@@ -11,11 +11,13 @@ import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.functions.lit
 import org.apache.spark.sql.functions.min
+import org.scalactic.Tolerance
 import org.scalatest.Outcome
 import org.scalatest.flatspec.FixtureAnyFlatSpec
-import org.scalactic.Tolerance
-import Tolerance.convertNumericToPlusOrMinusWrapper // Implicit to allow +-
+
 import scala.io.Source
+
+import Tolerance.convertNumericToPlusOrMinusWrapper
 
 class SamplePLTCalculatorSpec extends FixtureAnyFlatSpec {
 
@@ -67,17 +69,17 @@ class SamplePLTCalculatorSpec extends FixtureAnyFlatSpec {
     val lossmap = Map(res: _*)
     assert(lossmap(50000.0) === (3961210646.25 +- 1e-2))
     assert(lossmap(10000.0) === (2566817596.18 +- 1e-2))
-    assert(lossmap( 5000.0) === (1982672189.0  +- 1e-2))
-    assert(lossmap( 1000.0) === (1149500694.43 +- 1e-2))
-    assert(lossmap(  500.0) === (832353773.07 +- 1e-2))
-    assert(lossmap(  250.0) === (580645121.7 +- 1e-2))
-    assert(lossmap(  200.0) === (514043110.58 +- 1e-2))
-    assert(lossmap(  100.0) === (339844342.61 +- 1e-2))
-    assert(lossmap(   50.0) === (198673192.75 +- 1e-2))
-    assert(lossmap(   25.0) === (105494369.44 +- 1e-2))
-    assert(lossmap(   10.0) === (38559130.58 +- 1e-2))
-    assert(lossmap(    5.0) === (13233579.61 +- 1e-2))
-    assert(lossmap(    2.0) === (583871.12 +- 1e-2))
+    assert(lossmap(5000.0) === (1982672189.0 +- 1e-2))
+    assert(lossmap(1000.0) === (1149500694.43 +- 1e-2))
+    assert(lossmap(500.0) === (832353773.07 +- 1e-2))
+    assert(lossmap(250.0) === (580645121.7 +- 1e-2))
+    assert(lossmap(200.0) === (514043110.58 +- 1e-2))
+    assert(lossmap(100.0) === (339844342.61 +- 1e-2))
+    assert(lossmap(50.0) === (198673192.75 +- 1e-2))
+    assert(lossmap(25.0) === (105494369.44 +- 1e-2))
+    assert(lossmap(10.0) === (38559130.58 +- 1e-2))
+    assert(lossmap(5.0) === (13233579.61 +- 1e-2))
+    assert(lossmap(2.0) === (583871.12 +- 1e-2))
   }
 
   "Test AEP calculations" should "all have EPType \"AEP\"" in { fixture =>
@@ -91,8 +93,8 @@ class SamplePLTCalculatorSpec extends FixtureAnyFlatSpec {
 
   // In the original python test cases, there was no test
   // for the AEP calculations for the sample csv file.
-  // We have used the Jupyter notebook to generate values 
-  // for the standard return periods, and have added the 
+  // We have used the Jupyter notebook to generate values
+  // for the standard return periods, and have added the
   // following test for the AEP calculations using spark.
   it should "should have values" in { fixture =>
     val zeroLossRecordWeight = 1.0 / 50000.0
@@ -102,17 +104,17 @@ class SamplePLTCalculatorSpec extends FixtureAnyFlatSpec {
     val lossmap = Map(res: _*)
     assert(lossmap(50000.0) === (4458481476.37 +- 1e-2))
     assert(lossmap(10000.0) === (2567302366.31 +- 1e-2))
-    assert(lossmap( 5000.0) === (2066233259.4 +- 1e-2))
-    assert(lossmap( 1000.0) === (1268780632.3200002 +- 1e-2))
-    assert(lossmap(  500.0) === (901186582.9999999 +- 1e-2))
-    assert(lossmap(  250.0) === (631468361.0500001 +- 1e-2))
-    assert(lossmap(  200.0) === (557699753.47 +- 1e-2))
-    assert(lossmap(  100.0) === (369668338.56 +- 1e-2))
-    assert(lossmap(   50.0) === (225176137.1 +- 1e-2))
-    assert(lossmap(   25.0) === (120435807.74 +- 1e-2))
-    assert(lossmap(   10.0) === (44769969.04 +- 1e-2))
-    assert(lossmap(    5.0) === (15443202.180000002 +- 1e-2))
-    assert(lossmap(    2.0) === (672148.1900000001 +- 1e-2))
+    assert(lossmap(5000.0) === (2066233259.4 +- 1e-2))
+    assert(lossmap(1000.0) === (1268780632.3200002 +- 1e-2))
+    assert(lossmap(500.0) === (901186582.9999999 +- 1e-2))
+    assert(lossmap(250.0) === (631468361.0500001 +- 1e-2))
+    assert(lossmap(200.0) === (557699753.47 +- 1e-2))
+    assert(lossmap(100.0) === (369668338.56 +- 1e-2))
+    assert(lossmap(50.0) === (225176137.1 +- 1e-2))
+    assert(lossmap(25.0) === (120435807.74 +- 1e-2))
+    assert(lossmap(10.0) === (44769969.04 +- 1e-2))
+    assert(lossmap(5.0) === (15443202.180000002 +- 1e-2))
+    assert(lossmap(2.0) === (672148.1900000001 +- 1e-2))
   }
 
   "Test AAL" should "have value" in { fixture =>
@@ -124,7 +126,7 @@ class SamplePLTCalculatorSpec extends FixtureAnyFlatSpec {
     val sd = PLT.calculateStandardDeviation(fixture.data).select("StdDev").first().getDouble(0)
     assert(sd === (91165041.19825359 +- 1e-6))
   }
-  
+
   "Test statistics" should "have columns" in { fixture =>
     val stats = PLT.calculateStatistics(fixture.data)
     assert(stats.columns.deep == Array[String]("SubportfolioId", "AAL", "StdDev", "CV").deep)

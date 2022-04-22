@@ -5,11 +5,12 @@
 package main.scala
 
 import com.jvstinian.rms.aggregationtools.EPCurve
-import com.jvstinian.rms.aggregationtools.PLTRecord
 import com.jvstinian.rms.aggregationtools.PLT
+import com.jvstinian.rms.aggregationtools.PLTRecord
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.functions.lit
+
 import java.sql.Date
 import java.text.SimpleDateFormat
 import scala.io.Source
