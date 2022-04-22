@@ -24,14 +24,19 @@ case class SimplePLTRecord(
     loss: Double
 )
 
+// PLTRecord is used for construction a Spark DataFrame.
+// Though this runs contrary to naming conventions,
+// we use uppercase constructor parameters for consistency 
+// with the input field names (and to avoid manual renaming 
+// of fields).
 case class PLTRecord(
-    lossType: String,
-    periodId: Int,
-    weight: Double,
-    eventId: Long,
-    eventDate: Date,
-    lossDate: Date,
-    loss: Double
+    LossType: String,
+    PeriodId: Int,
+    Weight: Double,
+    EventId: Long,
+    EventDate: Date,
+    LossDate: Date,
+    Loss: Double
 )
 
 object PLTRecord {
@@ -60,14 +65,14 @@ object PLT {
       zeroLossRecordWeight: Option[Double]
   ): DataFrame = {
     val maxPeriodLosses = pltdf
-      .groupBy(col("subportfolioId"), col("periodId"))
-      .agg(max("weight").alias("weight"), max("loss").alias("loss"))
+      .groupBy(col("SubportfolioId"), col("PeriodId"))
+      .agg(max("Weight").alias("Weight"), max("Loss").alias("Loss"))
       .withColumn(
-        "probability",
-        sum(col("weight")).over(
+        "Probability",
+        sum(col("Weight")).over(
           Window
-            .partitionBy("subportfolioId")
-            .orderBy(col("loss").desc)
+            .partitionBy("SubportfolioId")
+            .orderBy(col("Loss").desc)
             .rowsBetween(Window.unboundedPreceding, Window.currentRow)
         )
       )
@@ -75,7 +80,7 @@ object PLT {
     import maxPeriodLosses.sparkSession.implicits._
     maxPeriodLosses
       .map(row =>
-        EPCurveInput(row.getAs[String]("subportfolioId"), row.getAs[Double]("probability"), row.getAs[Double]("loss"))
+        EPCurveInput(row.getAs[String]("SubportfolioId"), row.getAs[Double]("Probability"), row.getAs[Double]("Loss"))
       )
       .groupByKey(_.subportfolioId)
       .flatMapGroups(calculateEPForReturnPeriods(EPCurve.EPType.OEP, rps, zeroLossRecordWeight))
@@ -88,14 +93,14 @@ object PLT {
       zeroLossRecordWeight: Option[Double]
   ): DataFrame = {
     val aggPeriodLosses = pltdf
-      .groupBy(col("subportfolioId"), col("periodId"))
-      .agg(max("weight").alias("weight"), sum("loss").alias("loss"))
+      .groupBy(col("SubportfolioId"), col("PeriodId"))
+      .agg(max("Weight").alias("Weight"), sum("Loss").alias("Loss"))
       .withColumn(
-        "probability",
-        sum(col("weight")).over(
+        "Probability",
+        sum(col("Weight")).over(
           Window
-            .partitionBy("subportfolioId")
-            .orderBy(col("loss").desc)
+            .partitionBy("SubportfolioId")
+            .orderBy(col("Loss").desc)
             .rowsBetween(Window.unboundedPreceding, Window.currentRow)
         )
       )
@@ -103,29 +108,48 @@ object PLT {
     import aggPeriodLosses.sparkSession.implicits._
     aggPeriodLosses
       .map(row =>
-        EPCurveInput(row.getAs[String]("subportfolioId"), row.getAs[Double]("probability"), row.getAs[Double]("loss"))
+        EPCurveInput(row.getAs[String]("SubportfolioId"), row.getAs[Double]("Probability"), row.getAs[Double]("Loss"))
       )
       .groupByKey(_.subportfolioId)
       .flatMapGroups(calculateEPForReturnPeriods(EPCurve.EPType.AEP, rps, zeroLossRecordWeight))
       .toDF()
   }
+  
+  def calculateCombinedPMLForReturnPeriodsBySubportfolio(
+      pltdf: DataFrame,
+      rps: Seq[Double],
+      zeroLossRecordWeight: Option[Double]
+  ): DataFrame = {
+    val groupedPltDf = this.groupPlts(pltdf).cache
+    val opmldf = this.calculateOEPForReturnPeriodsBySubportfolio(groupedPltDf, rps, zeroLossRecordWeight)
+    val apmldf = this.calculateAEPForReturnPeriodsBySubportfolio(groupedPltDf, rps, zeroLossRecordWeight)
+    val resdf = opmldf.union(apmldf)
+    resdf.groupBy("SubportfolioId", "ReturnPeriod")
+         .pivot("EPType", Seq[String]("OEP", "AEP"))
+         .agg(max(col("Loss")).alias("Loss"))
+  }
+
+  def groupPlts(pltdf: DataFrame): DataFrame = pltdf
+    .select("SubportfolioId", "PeriodId", "EventId", "EventDate", "Weight", "Loss")
+    .groupBy("SubportfolioId", "PeriodId", "EventId", "EventDate")
+    .agg(max(col("Weight")).alias("Weight"), sum(col("Loss")).alias("Loss"))
 
   def rollUp(pltdf: DataFrame): DataFrame = pltdf
-    .select("subportfolioId", "periodId", "weight", "loss")
-    .groupBy("subportfolioId", "periodId")
-    .agg(max(col("weight")).alias("weight"), sum(col("loss")).alias("loss"))
+    .select("SubportfolioId", "PeriodId", "Weight", "Loss")
+    .groupBy("SubportfolioId", "PeriodId")
+    .agg(max(col("Weight")).alias("Weight"), sum(col("Loss")).alias("Loss"))
 
   def calculateAAL(pltdf: DataFrame): DataFrame = this
     .rollUp(pltdf)
-    .groupBy("subportfolioId")
-    .agg(sum(col("weight") * col("loss")).alias("AAL"))
+    .groupBy("SubportfolioId")
+    .agg(sum(col("Weight") * col("Loss")).alias("AAL"))
 
   def calculateStandardDeviation(pltdf: DataFrame): DataFrame = this
     .rollUp(pltdf)
-    .groupBy("subportfolioId")
+    .groupBy("SubportfolioId")
     .agg(
-      sum(col("weight") * pow(col("loss"), 2.0)).alias("MeanSquareLoss"),
-      sum(col("weight") * col("loss")).alias("MeanLoss")
+      sum(col("Weight") * pow(col("Loss"), 2.0)).alias("MeanSquareLoss"),
+      sum(col("Weight") * col("Loss")).alias("MeanLoss")
     )
     .withColumn("Variance", col("MeanSquareLoss") - pow(col("MeanLoss"), 2.0))
     .withColumn("StdDev", sqrt(col("Variance")))
@@ -133,10 +157,10 @@ object PLT {
 
   def calculateStatistics(pltdf: DataFrame): DataFrame = this
     .rollUp(pltdf)
-    .groupBy("subportfolioId")
+    .groupBy("SubportfolioId")
     .agg(
-      sum(col("weight") * pow(col("loss"), 2.0)).alias("MeanSquareLoss"),
-      sum(col("weight") * col("loss")).alias("AAL")
+      sum(col("Weight") * pow(col("Loss"), 2.0)).alias("MeanSquareLoss"),
+      sum(col("Weight") * col("Loss")).alias("AAL")
     )
     .withColumn("Variance", col("MeanSquareLoss") - pow(col("AAL"), 2.0))
     .withColumn("StdDev", sqrt(col("Variance")))

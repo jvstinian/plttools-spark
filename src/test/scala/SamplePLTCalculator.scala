@@ -13,12 +13,13 @@ import org.apache.spark.sql.functions.lit
 import org.apache.spark.sql.functions.min
 import org.scalatest.Outcome
 import org.scalatest.flatspec.FixtureAnyFlatSpec
-
+import org.scalactic.Tolerance
+import Tolerance.convertNumericToPlusOrMinusWrapper // Implicit to allow +-
 import scala.io.Source
 
 class SamplePLTCalculatorSpec extends FixtureAnyFlatSpec {
 
-  case class FixtureParam(spark: SparkSession, data: DataFrame)
+  case class FixtureParam(spark: SparkSession, data: DataFrame, groupedplts: DataFrame)
 
   def withFixture(test: OneArgTest): Outcome = {
     val spark: SparkSession = SparkSession.builder().appName("PLTCalculatorTest").master("local").getOrCreate()
@@ -31,8 +32,9 @@ class SamplePLTCalculatorSpec extends FixtureAnyFlatSpec {
       .tail
       .map(PLTRecordParser.parseRecord)
     val df = PLTRecord.toDataframe(spark, pltrecs).withColumn("subportfolioId", lit("all"))
+    val groupeddf = PLT.groupPlts(df)
 
-    val theFixture = FixtureParam(spark, df)
+    val theFixture = FixtureParam(spark, df, groupeddf)
 
     try {
       withFixture(test.toNoArgTest(theFixture))
@@ -51,7 +53,7 @@ class SamplePLTCalculatorSpec extends FixtureAnyFlatSpec {
   "Test OEP calculations" should "all have EPType \"OEP\"" in { fixture =>
     val zeroLossRecordWeight = 1.0 / 50000.0
     val rps = EPCurve.RETURN_PERIODS.toSeq.map(_.toDouble)
-    val oepdf = PLT.calculateOEPForReturnPeriodsBySubportfolio(fixture.data, rps, Some(zeroLossRecordWeight))
+    val oepdf = PLT.calculateOEPForReturnPeriodsBySubportfolio(fixture.groupedplts, rps, Some(zeroLossRecordWeight))
     val isOep =
       oepdf.withColumn("isOEPType", col("EPType") === lit("OEP")).select("isOEPType").collect.map(_.getBoolean(0))
     assert(isOep.reduce(_ && _))
@@ -59,33 +61,57 @@ class SamplePLTCalculatorSpec extends FixtureAnyFlatSpec {
 
   it should "should have values" in { fixture =>
     val zeroLossRecordWeight = 1.0 / 50000.0
-    val rps = Seq[Double](2, 5, 10, 25, 50, 100, 200, 250, 500, 1000, 5000, 10000)
-    val oepdf = PLT.calculateOEPForReturnPeriodsBySubportfolio(fixture.data, rps, Some(zeroLossRecordWeight))
+    val rps = EPCurve.RETURN_PERIODS.toSeq.map(_.toDouble)
+    val oepdf = PLT.calculateOEPForReturnPeriodsBySubportfolio(fixture.groupedplts, rps, Some(zeroLossRecordWeight))
     val res = oepdf.select("ReturnPeriod", "Loss").collect.map(row => (row.getDouble(0), row.getDouble(1)))
     val lossmap = Map(res: _*)
-    assert(lossmap(10000.0) == 1819634176.0)
-    assert(lossmap(5000.0) == 1523913168.00)
-    assert(Math.abs(lossmap(1000.0) - 845724466.4) < 1e-2)
-    assert(Math.abs(lossmap(500.0) - 588621182.4) < 1e-2)
-    assert(Math.abs(lossmap(250.0) - 412294994.10) < 1e-2)
-    assert(Math.abs(lossmap(200.0) - 366269622.00) < 1e-2)
-    assert(Math.abs(lossmap(100.0) - 242027618.20) < 1e-2)
-    assert(Math.abs(lossmap(50.0) - 151068382.10) < 1e-2)
-    assert(Math.abs(lossmap(25.0) - 82166268.18) < 1e-2)
-    assert(Math.abs(lossmap(10.0) - 31677493.70) < 1e-2)
-    assert(Math.abs(lossmap(5.0) - 11293770.08) < 1e-2)
-    assert(Math.abs(lossmap(2.0) - 532981.48) < 1e-2)
+    assert(lossmap(50000.0) === (3961210646.25 +- 1e-2))
+    assert(lossmap(10000.0) === (2566817596.18 +- 1e-2))
+    assert(lossmap( 5000.0) === (1982672189.0  +- 1e-2))
+    assert(lossmap( 1000.0) === (1149500694.43 +- 1e-2))
+    assert(lossmap(  500.0) === (832353773.07 +- 1e-2))
+    assert(lossmap(  250.0) === (580645121.7 +- 1e-2))
+    assert(lossmap(  200.0) === (514043110.58 +- 1e-2))
+    assert(lossmap(  100.0) === (339844342.61 +- 1e-2))
+    assert(lossmap(   50.0) === (198673192.75 +- 1e-2))
+    assert(lossmap(   25.0) === (105494369.44 +- 1e-2))
+    assert(lossmap(   10.0) === (38559130.58 +- 1e-2))
+    assert(lossmap(    5.0) === (13233579.61 +- 1e-2))
+    assert(lossmap(    2.0) === (583871.12 +- 1e-2))
   }
 
-  /*
-    "Saample OEP calculations" should "have values" in { fixture =>
-        """ Test Calculate OEP Curve from Excel PLT example"""
-        assert oep.loss_at_a_given_return_period(10)  ==  38559130.58
-        assert oep.loss_at_a_given_return_period(25)  == 105494369.44
-        assert oep.loss_at_a_given_return_period(50)  == 198673192.75
-        assert oep.loss_at_a_given_return_period(100) == 339844342.61
-        assert oep.loss_at_a_given_return_period(200) == 514043110.58
-        assert oep.loss_at_a_given_return_period(250) == 580645121.6999999
-        assert oep.loss_at_a_given_return_period(500) == 832353773.07
-   */
+  "Test AEP calculations" should "all have EPType \"AEP\"" in { fixture =>
+    val zeroLossRecordWeight = 1.0 / 50000.0
+    val rps = EPCurve.RETURN_PERIODS.toSeq.map(_.toDouble)
+    val aepdf = PLT.calculateAEPForReturnPeriodsBySubportfolio(fixture.groupedplts, rps, Some(zeroLossRecordWeight))
+    val isAep =
+      aepdf.withColumn("isAEPType", col("EPType") === lit("AEP")).select("isAEPType").collect.map(_.getBoolean(0))
+    assert(isAep.reduce(_ && _))
+  }
+
+  // In the original python test cases, there was no test
+  // for the AEP calculations for the sample csv file.
+  // We have used the Jupyter notebook to generate values 
+  // for the standard return periods, and have added the 
+  // following test for the AEP calculations using spark.
+  it should "should have values" in { fixture =>
+    val zeroLossRecordWeight = 1.0 / 50000.0
+    val rps = EPCurve.RETURN_PERIODS.toSeq.map(_.toDouble)
+    val aepdf = PLT.calculateAEPForReturnPeriodsBySubportfolio(fixture.groupedplts, rps, Some(zeroLossRecordWeight))
+    val res = aepdf.select("ReturnPeriod", "Loss").collect.map(row => (row.getDouble(0), row.getDouble(1)))
+    val lossmap = Map(res: _*)
+    assert(lossmap(50000.0) === (4458481476.37 +- 1e-2))
+    assert(lossmap(10000.0) === (2567302366.31 +- 1e-2))
+    assert(lossmap( 5000.0) === (2066233259.4 +- 1e-2))
+    assert(lossmap( 1000.0) === (1268780632.3200002 +- 1e-2))
+    assert(lossmap(  500.0) === (901186582.9999999 +- 1e-2))
+    assert(lossmap(  250.0) === (631468361.0500001 +- 1e-2))
+    assert(lossmap(  200.0) === (557699753.47 +- 1e-2))
+    assert(lossmap(  100.0) === (369668338.56 +- 1e-2))
+    assert(lossmap(   50.0) === (225176137.1 +- 1e-2))
+    assert(lossmap(   25.0) === (120435807.74 +- 1e-2))
+    assert(lossmap(   10.0) === (44769969.04 +- 1e-2))
+    assert(lossmap(    5.0) === (15443202.180000002 +- 1e-2))
+    assert(lossmap(    2.0) === (672148.1900000001 +- 1e-2))
+  }
 }
