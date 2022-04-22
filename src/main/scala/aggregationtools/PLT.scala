@@ -127,6 +127,8 @@ object PLT {
     resdf.groupBy("SubportfolioId", "ReturnPeriod")
          .pivot("EPType", Seq[String]("OEP", "AEP"))
          .agg(max(col("Loss")).alias("Loss"))
+         .withColumnRenamed("OEP", "OPML")
+         .withColumnRenamed("AEP", "APML")
   }
 
   def groupPlts(pltdf: DataFrame): DataFrame = pltdf

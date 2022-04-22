@@ -51,6 +51,8 @@ object RMSPLTAnalyticsExample {
     val df = PLTRecord.toDataframe(spark, pltrecs).withColumn("SubportfolioId", lit("All"))
     df.show(false)
 
+    PLT.calculateStatistics(df).show(false)
+
     val rps = EPCurve.RETURN_PERIODS.toSeq.map(_.toDouble)
     val zeroLossRecordWeight = 1.0 / 50000.0
     val pmlsdf = PLT.calculateCombinedPMLForReturnPeriodsBySubportfolio(
