@@ -12,6 +12,9 @@ import org.apache.spark.sql.functions.lit
 import org.scalatest.Outcome
 import org.scalatest.flatspec.FixtureAnyFlatSpec
 
+// Note that we do not use PLT.groupPlts to aggregate
+// the PLT records here, consistent with the
+// test cases in https://github.com/RMS-Consulting/plttools.
 class PLTCalculatorSpec extends FixtureAnyFlatSpec {
 
   case class FixtureParam(spark: SparkSession, data: DataFrame)
