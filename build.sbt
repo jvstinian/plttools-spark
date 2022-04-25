@@ -1,6 +1,6 @@
 organization := "com.jvstinian"
 name := "plttools-spark"
-version := "0.1.0"
+version := "0.9.0"
 scalaVersion := "2.11.12" // Scala version needs to match version of Scaala used by Spark
 
 initialize := {
@@ -48,6 +48,7 @@ parallelExecution in Test := false
 val scalaTestVersion = "3.2.9"
 libraryDependencies += "org.scalatest" %% "scalatest" % scalaTestVersion % "test"
 libraryDependencies += "org.scalatest" %% "scalatest-flatspec" % scalaTestVersion % "test"
+libraryDependencies += "org.scalactic" %% "scalactic" % "3.2.11"
 
 // Spark dependencies
 val sparkVersion = "2.4.5"

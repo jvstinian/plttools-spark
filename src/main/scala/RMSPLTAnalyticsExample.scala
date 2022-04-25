@@ -4,15 +4,12 @@
  */
 package main.scala
 
+import com.jvstinian.rms.aggregationtools.EPCurve
+import com.jvstinian.rms.aggregationtools.PLT
 import com.jvstinian.rms.aggregationtools.PLTRecord
 import org.apache.spark.sql.SparkSession
-import org.apache.spark.sql.types.DateType
-import org.apache.spark.sql.types.DoubleType
-import org.apache.spark.sql.types.IntegerType
-import org.apache.spark.sql.types.LongType
-import org.apache.spark.sql.types.StringType
-import org.apache.spark.sql.types.StructField
-import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.functions.col
+import org.apache.spark.sql.functions.lit
 
 import java.sql.Date
 import java.text.SimpleDateFormat
@@ -22,17 +19,6 @@ final case class PLTRecordParseException(private val message: String = "", priva
     extends Exception(message, cause)
 
 object PLTRecordParser {
-  type PLTRecordType = (String, Int, Double, Long, Date, Date, Double)
-  val PLTSchema: StructType = StructType(
-    StructField("LossType", StringType, false) ::
-      StructField("PeriodId", IntegerType, false) ::
-      StructField("Weight", DoubleType, false) ::
-      StructField("EventId", LongType, false) ::
-      StructField("EventDate", DateType, false) ::
-      StructField("LossDate", DateType, false) ::
-      StructField("Loss", DoubleType, false) :: Nil
-  )
-
   def parseRecord(record: String): PLTRecord = {
     val format = new SimpleDateFormat("M/d/yyyy HH:mm:ss a")
     record.split(',') match {
@@ -40,7 +26,8 @@ object PLTRecordParser {
         PLTRecord(
           lossType,
           periodIdStr.toInt,
-          weightStr.toDouble, /*BigInt(eventIdStr)*/ eventIdStr.toLong,
+          weightStr.toDouble,
+          eventIdStr.toLong,
           new Date(format.parse(eventDateStr).getTime()),
           new Date(format.parse(lossDateStr).getTime()),
           lossStr.toDouble
@@ -57,15 +44,25 @@ object RMSPLTAnalyticsExample {
       .appName("RMSPLTAnalyticsExample")
       .master("local")
       .getOrCreate()
-    // Source.fromInputStream(getClass.getResourceAsStream("/plt.csv")).getLines().foreach(println)
     val pltrecs = Source
       .fromInputStream(getClass.getResourceAsStream("/plt.csv"))
       .getLines()
       .toSeq
       .tail
       .map(PLTRecordParser.parseRecord)
-    val df = PLTRecord.toDataframe(spark, pltrecs)
+    val df = PLTRecord.toDataframe(spark, pltrecs).withColumn("SubportfolioId", lit("All"))
     df.show(false)
+
+    PLT.calculateStatistics(df).show(false)
+
+    val rps = EPCurve.RETURN_PERIODS.toSeq.map(_.toDouble)
+    val zeroLossRecordWeight = 1.0 / 50000.0
+    val pmlsdf = PLT.calculateCombinedPMLForReturnPeriodsBySubportfolio(
+      df,
+      rps,
+      Some(zeroLossRecordWeight)
+    )
+    pmlsdf.orderBy(col("SubportfolioId"), col("ReturnPeriod").desc).show(false)
 
     spark.stop()
   }

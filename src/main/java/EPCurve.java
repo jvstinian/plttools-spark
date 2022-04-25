@@ -17,7 +17,7 @@ public class EPCurve {
         UNKNOWN
     };
 
-    public static int[] RETURN_PERIODS = new int[] {2, 5, 10, 25, 50, 100, 200, 250, 500, 1000, 5000, 10000};
+    public static int[] RETURN_PERIODS = new int[] {2, 5, 10, 25, 50, 100, 200, 250, 500, 1000, 5000, 10000, 50000};
 
     private EPType epType;
     private double[] probabilities;
